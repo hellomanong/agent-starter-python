@@ -161,3 +161,40 @@ You can also self-host LiveKit instead of using LiveKit Cloud. See the [self-hos
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+
+1. 安装新依赖
+  uv sync
+
+  2. 启动 FunASR 服务（实时对话需同时加载 offline + online 引擎以启用 2pass）
+  python -m funasr.server \
+    --host 0.0.0.0 --port 10095 \
+    --asr-model paraformer-zh \
+    --asr-model-online paraformer-zh-streaming \
+    --punc-model ct-punc
+
+  3. 启动 CosyVoice v2 服务（在 CosyVoice 目录下）
+  python cosyvoice_server.py \
+    --model_dir pretrained_models/CosyVoice2-0.5B \
+    --port 50000
+
+  4. 启动 vLLM（Qwen3-VL，本地视觉问答推荐先用 512px 单帧输入控制延迟）
+  python -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen3-VL-8B-Instruct \
+    --max-model-len 32768 \
+    --port 8000
+
+  5. 启动 agent
+  uv run python src/agent.py console
+
+  端点默认值可通过 .env.local 覆盖：
+  FUNASR_URL=ws://localhost:10095
+  COSYVOICE_URL=http://localhost:50000
+  COSYVOICE_SPEAKER=中文女
+  LLM_BASE_URL=http://localhost:8000/v1
+  LLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
+  LLM_MAX_COMPLETION_TOKENS=256
+  ENABLE_VIDEO=true
+  VISION_INFERENCE_WIDTH=512
+  VISION_INFERENCE_HEIGHT=512
+  PREEMPTIVE_GENERATION=false
