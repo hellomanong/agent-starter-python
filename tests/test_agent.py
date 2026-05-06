@@ -1,7 +1,14 @@
+import os
+
 import pytest
 from livekit.agents import AgentSession, inference, llm
 
 from agent import AGENT_MODEL, Assistant
+
+pytestmark = pytest.mark.skipif(
+    not (os.getenv("LIVEKIT_INFERENCE_API_KEY") or os.getenv("LIVEKIT_API_KEY")),
+    reason="LiveKit Inference credentials are required for online agent evals.",
+)
 
 
 def _agent_llm() -> llm.LLM:

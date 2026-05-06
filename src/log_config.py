@@ -34,6 +34,7 @@ structlog 与 Go zap 用法对比：
 from __future__ import annotations
 
 import atexit
+import copy
 import logging
 import logging.handlers
 import os
@@ -42,6 +43,13 @@ import sys
 from pathlib import Path
 
 import structlog
+
+
+class _StructlogQueueHandler(logging.handlers.QueueHandler):
+    """QueueHandler variant that leaves structlog event dicts intact."""
+
+    def prepare(self, record: logging.LogRecord) -> logging.LogRecord:
+        return copy.copy(record)
 
 
 def setup_logging() -> None:
@@ -133,7 +141,7 @@ def setup_logging() -> None:
     # SimpleQueue 的 put() 永远不阻塞（无 maxsize 限制）。
     log_queue: queue.SimpleQueue = queue.SimpleQueue()
 
-    queue_handler = logging.handlers.QueueHandler(log_queue)  # type: ignore[arg-type]
+    queue_handler = _StructlogQueueHandler(log_queue)  # type: ignore[arg-type]
 
     listener = logging.handlers.QueueListener(
         log_queue,  # type: ignore[arg-type]
@@ -155,7 +163,9 @@ def setup_logging() -> None:
         logging.getLogger(_noisy).setLevel(logging.WARNING)
 
     log = structlog.get_logger()
-    log.info("logging.ready", level=level_str, format=log_format, file=log_file or "stdout")
+    log.info(
+        "logging.ready", level=level_str, format=log_format, file=log_file or "stdout"
+    )
 
 
 # TimedRotatingFileHandler 的合法 when 值

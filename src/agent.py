@@ -53,16 +53,14 @@ from livekit.plugins import silero  # noqa: E402
 from livekit.plugins.turn_detector.multilingual import MultilingualModel  # noqa: E402
 
 from plugins import cosyvoice as cosyvoice_plugin  # noqa: E402
-from plugins import funasr as funasr_plugin  # noqa: E402
+from plugins import funasr_streaming as funasr_plugin  # noqa: E402
 
 logger = structlog.get_logger()
 
-# ── 4. 本地服务地址（从环境变量读取，方便 Docker / K8s 配置）──────────────
-FUNASR_URL = os.getenv("FUNASR_URL", "ws://localhost:10095")
-COSYVOICE_URL = os.getenv("COSYVOICE_URL", "http://localhost:50000")
-COSYVOICE_SPEAKER = os.getenv("COSYVOICE_SPEAKER", "中文女")
+# ── 4. 应用级配置（插件默认配置固定在各自 plugins/<provider>/config.py）──────
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8000/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "Qwen/Qwen3-VL-8B-Instruct")
+AGENT_MODEL = LLM_MODEL
 # 本地 vLLM/Ollama 不验证 API key，但 openai 客户端要求非空字符串
 LLM_API_KEY = os.getenv("LLM_API_KEY", "not-needed")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.6"))
@@ -280,7 +278,7 @@ async def my_agent(ctx: JobContext) -> None:
     session = AgentSession(
         # STT：FunASR WebSocket 客户端，实际识别模型由服务端启动参数决定。
         # 推荐服务端同时加载 paraformer-zh（offline）+ paraformer-zh-streaming（online）以启用 2pass。
-        stt=funasr_plugin.STT(url=FUNASR_URL, language="zh"),
+        stt=funasr_plugin.STT(),
         # LLM：通过 OpenAI 兼容接口对接本地 vLLM 部署的 Qwen3-VL
         llm=lk_openai.LLM(
             base_url=LLM_BASE_URL,
@@ -289,12 +287,9 @@ async def my_agent(ctx: JobContext) -> None:
             temperature=LLM_TEMPERATURE,
             max_completion_tokens=LLM_MAX_COMPLETION_TOKENS,
         ),
-        # TTS：CosyVoice2 官方 FastAPI 客户端，输出 22050 Hz int16 PCM
+        # TTS：CosyVoice2 官方 FastAPI 客户端，输出 24000 Hz int16 PCM
         # 音色对应官方接口的 spk_id，如 "中文女" / "中文男"
-        tts=cosyvoice_plugin.TTS(
-            base_url=COSYVOICE_URL,
-            speaker=COSYVOICE_SPEAKER,
-        ),
+        tts=cosyvoice_plugin.TTS(),
         # VAD：Silero，在 prewarm 阶段已加载
         vad=ctx.proc.userdata["vad"],
         # 轮次检测：MultilingualModel 比简单的静音检测更准确，支持多语言

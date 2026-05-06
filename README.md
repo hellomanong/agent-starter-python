@@ -174,8 +174,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     --punc-model ct-punc
 
   3. 启动 CosyVoice v2 服务（在 CosyVoice 目录下）
-  python cosyvoice_server.py \
-    --model_dir pretrained_models/CosyVoice2-0.5B \
+  python runtime/python/fastapi/server.py \
+    --model_dir iic/CosyVoice2-0.5B \
     --port 50000
 
   4. 启动 vLLM（Qwen3-VL，本地视觉问答推荐先用 512px 单帧输入控制延迟）
@@ -187,10 +187,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   5. 启动 agent
   uv run python src/agent.py console
 
-  端点默认值可通过 .env.local 覆盖：
-  FUNASR_URL=ws://localhost:10095
-  COSYVOICE_URL=http://localhost:50000
-  COSYVOICE_SPEAKER=中文女
+  FunASR 和 CosyVoice 插件配置固定在各自插件目录：
+  - `src/plugins/funasr/config.py`
+  - `src/plugins/cosyvoice/config.py`
+
+  应用级默认值可通过 .env.local 覆盖：
   LLM_BASE_URL=http://localhost:8000/v1
   LLM_MODEL=Qwen/Qwen3-VL-8B-Instruct
   LLM_MAX_COMPLETION_TOKENS=256
@@ -198,3 +199,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   VISION_INFERENCE_WIDTH=512
   VISION_INFERENCE_HEIGHT=512
   PREEMPTIVE_GENERATION=false
+
+  CosyVoice2-0.5B TTS 客户端默认按官方 FastAPI 的 24000 Hz、单声道、int16-LE raw PCM 输出处理音频。如果服务端模型或接口改成其他采样率/声道数，必须同步更新 `src/plugins/cosyvoice/config.py` 中的采样率和声道数配置。
